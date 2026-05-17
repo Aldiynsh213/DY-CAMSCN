@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import { loadImage } from './image';
 
-export async function createPdfBlob(pages) {
+export async function makePdf(pages) {
   if (!pages.length) {
     throw new Error('Belum ada halaman scan.');
   }
@@ -20,38 +20,35 @@ export async function createPdfBlob(pages) {
 
     const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
-    const ratio = img.width / img.height;
+    const imgRatio = img.width / img.height;
     const pageRatio = pageW / pageH;
 
     let w;
     let h;
 
-    if (ratio > pageRatio) {
+    if (imgRatio > pageRatio) {
       w = pageW;
-      h = w / ratio;
+      h = w / imgRatio;
     } else {
       h = pageH;
-      w = h * ratio;
+      w = h * imgRatio;
     }
 
     const x = (pageW - w) / 2;
     const y = (pageH - h) / 2;
-
     pdf.addImage(page.dataUrl, 'JPEG', x, y, w, h, undefined, 'FAST');
   }
 
-  return pdf.output('blob');
+  return pdf;
 }
 
-export function downloadBlob(blob, fileName) {
+export function savePdf(pdf, fileName = 'dy-camscn-scan.pdf') {
+  pdf.save(fileName);
+}
+
+export function openPdfPreview(pdf) {
+  const blob = pdf.output('blob');
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  window.open(url, '_blank', 'noopener,noreferrer');
+  setTimeout(() => URL.revokeObjectURL(url), 15000);
 }

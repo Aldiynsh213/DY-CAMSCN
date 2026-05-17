@@ -1,11 +1,11 @@
 {
-  "name": "dy-camscn Mobile Pro",
+  "name": "dy-camscn",
   "short_name": "dy-camscn",
   "description": "Mobile document scanner with corner crop and PDF export.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#050B14",
-  "theme_color": "#050B14",
+  "background_color": "#020617",
+  "theme_color": "#020617",
   "icons": [
     {
       "src": "/icon.svg",

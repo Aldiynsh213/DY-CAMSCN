@@ -1,8 +1,8 @@
 {
-  "name": "dy-camscn-mobile-pro",
-  "version": "4.0.0",
+  "name": "dy-camscn-mobile-fixed",
+  "version": "5.0.0",
   "private": true,
-  "description": "Mobile-first document scanner with one-button camera, corner crop, scanner enhancement, and reliable PDF download.",
+  "description": "Mobile-first document scanner with fullscreen camera, reliable PDF export, corner crop, and balanced scan enhancement.",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

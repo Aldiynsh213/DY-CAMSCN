@@ -1,40 +1,30 @@
-# dy-camscn Mobile Pro
+# dy-camscn Mobile Fixed
 
-Versi yang fokus untuk HP dan kerjaan harian.
+Versi perbaikan setelah feedback:
 
-## Perbaikan dari versi sebelumnya
+- Kamera fullscreen, tidak ketutup padding/box.
+- Menu kamera hanya punya tombol utama.
+- Start Camera berubah menjadi tombol shutter/foto.
+- Setelah satu scan, kamera tidak stuck hitam. Camera stream dimatikan lalu bisa dibuka ulang dari Add.
+- Hasil scan tidak dibuat putih berlebihan.
+- Default filter Balanced lebih jelas dan natural.
+- Download PDF pakai `pdf.save()` agar lebih reliable.
+- Preview PDF tetap tersedia setelah export.
 
-- Tampilan kamera tidak perlu scroll
-- Menu ambil gambar cuma punya satu tombol utama
-- Tombol Mulai Kamera berubah menjadi tombol foto/shutter
-- Tidak pakai OpenCV live, jadi tidak bikin browser freeze
-- Corner adjust full-screen
-- Hasil scan lebih putih dan lebih mirip dokumen scanner
-- Export PDF lebih reliable
-- Setelah export, muncul juga link Open PDF preview
+## Cara update
 
-## Cara pakai
-
-1. Start Camera
-2. Tombol berubah jadi shutter/foto
-3. Ambil foto dokumen
-4. Geser 4 titik hijau ke sudut dokumen
-5. Pilih Magic/Clean/BW
-6. Save scan
-7. Download PDF
-
-## Run
+Copy isi folder ini ke folder project lama, jangan hapus `.git`.
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Deploy Vercel
+Lalu:
 
 ```bash
 git add .
-git commit -m "upgrade mobile scanner ui"
+git commit -m "fix camera scanner mobile flow"
 git push
 ```
 

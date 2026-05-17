@@ -1,27 +1,29 @@
-import { Camera, Download, FileText, ImagePlus, Loader2, Plus, ScanLine, Trash2 } from 'lucide-react';
+import { Camera, Download, FileText, Loader2, Plus, ScanLine, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import CornerEditor from './components/CornerEditor';
-import { captureVideoFrame, fileToDataUrl } from './utils/image';
-import { createPdfBlob, downloadBlob } from './utils/pdf';
+import { captureVideoFrame } from './utils/image';
+import { makePdf, openPdfPreview, savePdf } from './utils/pdf';
 
 export default function App() {
   const videoRef = useRef(null);
-  const fileRef = useRef(null);
   const streamRef = useRef(null);
-
-  const [cameraReady, setCameraReady] = useState(false);
   const [view, setView] = useState('camera');
+  const [cameraReady, setCameraReady] = useState(false);
   const [shot, setShot] = useState(null);
   const [pages, setPages] = useState([]);
-  const [message, setMessage] = useState('Tap Start Camera.');
+  const [message, setMessage] = useState('Start camera.');
   const [exporting, setExporting] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState('');
+  const [lastPdf, setLastPdf] = useState(null);
 
-  useEffect(() => () => stopCamera(), []);
+  useEffect(() => {
+    return () => stopCamera();
+  }, []);
 
   async function startCamera() {
     try {
       setMessage('Opening camera...');
+
+      stopCamera();
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -33,13 +35,17 @@ export default function App() {
       });
 
       streamRef.current = stream;
-      videoRef.current.srcObject = stream;
-      await videoRef.current.play();
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
 
       setCameraReady(true);
-      setMessage('Ready. Tap the shutter button.');
+      setMessage('Ready. Tap shutter.');
     } catch (error) {
-      setMessage('Camera failed. Allow camera permission and use HTTPS.');
+      setCameraReady(false);
+      setMessage('Camera failed. Allow permission and use HTTPS.');
     }
   }
 
@@ -49,32 +55,34 @@ export default function App() {
       streamRef.current = null;
     }
 
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
     setCameraReady(false);
   }
 
-  function mainCameraAction() {
+  function cameraAction() {
     if (!cameraReady) {
       startCamera();
       return;
     }
 
-    if (!videoRef.current) return;
-    setShot(captureVideoFrame(videoRef.current));
-  }
-
-  async function importPhoto(event) {
-    const file = Array.from(event.target.files || []).find((item) => item.type.startsWith('image/'));
-    if (!file) return;
-
-    setShot(await fileToDataUrl(file));
-    event.target.value = '';
+    const dataUrl = captureVideoFrame(videoRef.current);
+    stopCamera();
+    setShot(dataUrl);
   }
 
   function savePage(page) {
     setPages((current) => [...current, page]);
     setShot(null);
-    setView('result');
-    setMessage('Scan saved. Add page or download PDF.');
+    setView('results');
+    setMessage('Scan saved.');
+  }
+
+  function goCamera() {
+    setView('camera');
+    setMessage('Start camera.');
   }
 
   async function exportPdf() {
@@ -87,16 +95,12 @@ export default function App() {
     setMessage('Creating PDF...');
 
     try {
-      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-
-      const blob = await createPdfBlob(pages);
-      const url = URL.createObjectURL(blob);
-      setPdfUrl(url);
-
-      downloadBlob(blob, 'dy-camscn-scan.pdf');
-      setMessage('PDF downloaded. If it does not start, tap Open PDF.');
+      const pdf = await makePdf(pages);
+      setLastPdf(pdf);
+      savePdf(pdf, 'dy-camscn-scan.pdf');
+      setMessage('PDF downloaded. If download does not open, tap Preview.');
     } catch (error) {
-      setMessage(error.message || 'Failed to create PDF.');
+      setMessage(error.message || 'Failed creating PDF.');
     } finally {
       setExporting(false);
     }
@@ -107,73 +111,70 @@ export default function App() {
       {shot && (
         <CornerEditor
           shot={shot}
-          onCancel={() => setShot(null)}
+          onBack={() => setShot(null)}
           onSave={savePage}
         />
       )}
 
       {view === 'camera' && (
-        <section className="cameraView">
-          <div className="cameraTop">
+        <section className="cameraScreen">
+          <video ref={videoRef} playsInline muted />
+
+          {!cameraReady && (
+            <div className="intro">
+              <ScanLine size={58} />
+              <h1>dy-camscn</h1>
+              <p>Scan documents into clean PDF pages.</p>
+            </div>
+          )}
+
+          {cameraReady && <div className="frameGuide" />}
+
+          <header className="cameraHeader">
             <div>
               <strong>dy-camscn</strong>
-              <span>{pages.length} page{pages.length === 1 ? '' : 's'}</span>
+              <span>{pages.length} pages</span>
             </div>
-            <button onClick={() => setView('result')} className="miniBtn">
+            <button onClick={() => setView('results')}>
               <FileText size={18} />
-              Results
             </button>
-          </div>
+          </header>
 
-          <div className="cameraStage">
-            <video ref={videoRef} playsInline muted />
-            {!cameraReady && (
-              <div className="cameraIntro">
-                <ScanLine size={58} />
-                <h1>Document Scanner</h1>
-                <p>Start camera, take photo, adjust corners, then export a clean PDF.</p>
-              </div>
-            )}
-            {cameraReady && <div className="guideFrame" />}
-          </div>
-
-          <div className="cameraBottom">
+          <footer className="cameraFooter">
             <p>{message}</p>
-            <button className={cameraReady ? 'shutter' : 'startBtn'} onClick={mainCameraAction}>
-              {cameraReady ? <Camera size={28} /> : 'Start Camera'}
+            <button className={cameraReady ? 'shutter' : 'startCamera'} onClick={cameraAction}>
+              {cameraReady ? <Camera size={30} /> : 'Start Camera'}
             </button>
-          </div>
+          </footer>
         </section>
       )}
 
-      {view === 'result' && (
-        <section className="resultView">
-          <header className="resultTop">
-            <button onClick={() => setView('camera')} className="miniBtn">
+      {view === 'results' && (
+        <section className="resultScreen">
+          <header className="resultHeader">
+            <button onClick={goCamera}>
               <Plus size={18} />
               Add
             </button>
             <div>
-              <strong>Scan Results</strong>
-              <span>{pages.length} page{pages.length === 1 ? '' : 's'}</span>
+              <strong>Results</strong>
+              <span>{pages.length} pages</span>
             </div>
-            <button onClick={() => fileRef.current?.click()} className="miniBtn">
-              <ImagePlus size={18} />
-              Import
+            <button onClick={() => lastPdf && openPdfPreview(lastPdf)} disabled={!lastPdf}>
+              Preview
             </button>
-            <input ref={fileRef} type="file" accept="image/*" hidden onChange={importPhoto} />
           </header>
 
           {!pages.length ? (
             <div className="empty">
               <ScanLine size={58} />
-              <h2>No scans yet</h2>
-              <p>Tap Add to capture a document.</p>
+              <h2>No pages yet</h2>
+              <p>Tap Add to scan your first document.</p>
             </div>
           ) : (
             <div className="pages">
               {pages.map((page, index) => (
-                <article key={page.id} className="pageCard">
+                <article className="pageCard" key={page.id}>
                   <img src={page.dataUrl} alt={`Page ${index + 1}`} />
                   <div>
                     <strong>Page {index + 1}</strong>
@@ -186,18 +187,13 @@ export default function App() {
             </div>
           )}
 
-          <div className="downloadPanel">
+          <footer className="downloadBar">
             <p>{message}</p>
-            <button className="downloadBtn" onClick={exportPdf} disabled={!pages.length || exporting}>
+            <button onClick={exportPdf} disabled={!pages.length || exporting}>
               {exporting ? <Loader2 className="spin" size={20} /> : <Download size={20} />}
-              {exporting ? 'Creating PDF...' : 'Download PDF'}
+              {exporting ? 'Creating...' : 'Download PDF'}
             </button>
-            {pdfUrl && (
-              <a className="openPdf" href={pdfUrl} target="_blank" rel="noreferrer">
-                Open PDF preview
-              </a>
-            )}
-          </div>
+          </footer>
         </section>
       )}
     </div>

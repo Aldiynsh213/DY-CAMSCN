@@ -1,16 +1,16 @@
 import { Check, Loader2, RotateCcw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { defaultCorners, getImageSize, perspectiveCropToDataUrl } from '../utils/image';
+import { cropDocument, defaultCorners, getImageSize } from '../utils/image';
 
 const keys = ['tl', 'tr', 'br', 'bl'];
 
-export default function CornerEditor({ shot, onCancel, onSave }) {
-  const imgRef = useRef(null);
+export default function CornerEditor({ shot, onBack, onSave }) {
   const wrapRef = useRef(null);
+  const imgRef = useRef(null);
   const [size, setSize] = useState(null);
   const [corners, setCorners] = useState(null);
   const [dragging, setDragging] = useState(null);
-  const [mode, setMode] = useState('magic');
+  const [mode, setMode] = useState('balanced');
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
@@ -21,22 +21,22 @@ export default function CornerEditor({ shot, onCancel, onSave }) {
   }, [shot]);
 
   const display = useMemo(() => {
-    if (!imgRef.current || !wrapRef.current || !size) {
+    if (!wrapRef.current || !imgRef.current || !size) {
       return { ox: 0, oy: 0, sx: 1, sy: 1 };
     }
 
-    const imageRect = imgRef.current.getBoundingClientRect();
-    const wrapRect = wrapRef.current.getBoundingClientRect();
+    const wrap = wrapRef.current.getBoundingClientRect();
+    const img = imgRef.current.getBoundingClientRect();
 
     return {
-      ox: imageRect.left - wrapRect.left,
-      oy: imageRect.top - wrapRect.top,
-      sx: imageRect.width / size.width,
-      sy: imageRect.height / size.height,
+      ox: img.left - wrap.left,
+      oy: img.top - wrap.top,
+      sx: img.width / size.width,
+      sy: img.height / size.height,
     };
   }, [size, corners]);
 
-  function screenPoint(point) {
+  function toScreen(point) {
     return {
       x: display.ox + point.x * display.sx,
       y: display.oy + point.y * display.sy,
@@ -44,7 +44,7 @@ export default function CornerEditor({ shot, onCancel, onSave }) {
   }
 
   function updatePointer(event) {
-    if (!dragging || !wrapRef.current || !size) return;
+    if (!dragging || !size || !wrapRef.current) return;
 
     const rect = wrapRef.current.getBoundingClientRect();
     const client = event.touches ? event.touches[0] : event;
@@ -79,13 +79,13 @@ export default function CornerEditor({ shot, onCancel, onSave }) {
     };
   });
 
-  async function apply() {
+  async function applyCrop() {
     if (!corners) return;
 
     setProcessing(true);
 
     try {
-      const dataUrl = await perspectiveCropToDataUrl(shot, corners, { mode, quality: 0.95 });
+      const dataUrl = await cropDocument(shot, corners, { mode, quality: 0.95 });
       onSave({
         id: crypto.randomUUID(),
         dataUrl,
@@ -99,38 +99,38 @@ export default function CornerEditor({ shot, onCancel, onSave }) {
 
   if (!size || !corners) {
     return (
-      <div className="editorScreen">
-        <Loader2 className="spin" />
+      <div className="editor">
+        <Loader2 className="spin" size={30} />
       </div>
     );
   }
 
-  const points = keys.map((key) => screenPoint(corners[key]));
+  const points = keys.map((key) => toScreen(corners[key]));
   const polygon = points.map((p) => `${p.x},${p.y}`).join(' ');
 
   return (
-    <div className="editorScreen">
-      <div className="editorTop">
-        <button onClick={onCancel}>Back</button>
-        <strong>Adjust corners</strong>
+    <section className="editor">
+      <header className="editorHeader">
+        <button onClick={onBack}>Back</button>
+        <strong>Adjust document</strong>
         <button onClick={() => setCorners(defaultCorners(size.width, size.height))}>
           <RotateCcw size={18} />
         </button>
-      </div>
+      </header>
 
       <div className="editorCanvas" ref={wrapRef}>
-        <img ref={imgRef} src={shot} alt="Dokumen mentah" />
+        <img ref={imgRef} src={shot} alt="Raw document" />
         <svg>
           <polygon points={polygon} />
           {keys.map((key) => {
-            const p = screenPoint(corners[key]);
+            const p = toScreen(corners[key]);
 
             return (
               <circle
                 key={key}
                 cx={p.x}
                 cy={p.y}
-                r="20"
+                r="19"
                 onPointerDown={(event) => {
                   event.preventDefault();
                   setDragging(key);
@@ -145,29 +145,25 @@ export default function CornerEditor({ shot, onCancel, onSave }) {
         </svg>
       </div>
 
-      <div className="editorBottom">
-        <div className="filterTabs">
+      <footer className="editorFooter">
+        <div className="filters">
           {[
-            ['magic', 'Magic'],
-            ['clean', 'Clean'],
+            ['balanced', 'Balanced'],
+            ['text', 'Text'],
             ['bw', 'B/W'],
             ['original', 'Original'],
           ].map(([value, label]) => (
-            <button
-              key={value}
-              className={mode === value ? 'active' : ''}
-              onClick={() => setMode(value)}
-            >
+            <button key={value} className={mode === value ? 'active' : ''} onClick={() => setMode(value)}>
               {label}
             </button>
           ))}
         </div>
 
-        <button className="applyBtn" onClick={apply} disabled={processing}>
+        <button className="saveScan" onClick={applyCrop} disabled={processing}>
           {processing ? <Loader2 className="spin" size={20} /> : <Check size={20} />}
-          {processing ? 'Processing...' : 'Save scan'}
+          {processing ? 'Processing...' : 'Save Scan'}
         </button>
-      </div>
-    </div>
+      </footer>
+    </section>
   );
 }
