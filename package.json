@@ -1,8 +1,8 @@
 {
-  "name": "dy-camscn",
-  "version": "1.0.0",
+  "name": "dy-camscn-pro",
+  "version": "2.0.0",
   "private": true,
-  "description": "Mobile-first camera document scanner web app with PDF export.",
+  "description": "Mobile-first document scanner with auto document detection, perspective crop, enhancement, and PDF export.",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
