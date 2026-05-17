@@ -1,181 +1,172 @@
+import { Check, Loader2, RotateCcw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { defaultCorners, getImageSize, perspectiveCropToDataUrl } from '../utils/image';
-import { Check, Loader2, RotateCcw, Wand2 } from 'lucide-react';
 
-const handles = ['tl', 'tr', 'br', 'bl'];
+const keys = ['tl', 'tr', 'br', 'bl'];
 
 export default function CornerEditor({ shot, onCancel, onSave }) {
   const imgRef = useRef(null);
   const wrapRef = useRef(null);
-  const [imageSize, setImageSize] = useState(null);
+  const [size, setSize] = useState(null);
   const [corners, setCorners] = useState(null);
-  const [dragKey, setDragKey] = useState(null);
+  const [dragging, setDragging] = useState(null);
   const [mode, setMode] = useState('magic');
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    getImageSize(shot).then((size) => {
-      setImageSize(size);
-      setCorners(defaultCorners(size.width, size.height));
+    getImageSize(shot).then((imageSize) => {
+      setSize(imageSize);
+      setCorners(defaultCorners(imageSize.width, imageSize.height));
     });
   }, [shot]);
 
   const display = useMemo(() => {
-    if (!imgRef.current || !imageSize) return { x: 0, y: 0, w: 1, h: 1, sx: 1, sy: 1 };
+    if (!imgRef.current || !wrapRef.current || !size) {
+      return { ox: 0, oy: 0, sx: 1, sy: 1 };
+    }
 
-    const rect = imgRef.current.getBoundingClientRect();
+    const imageRect = imgRef.current.getBoundingClientRect();
     const wrapRect = wrapRef.current.getBoundingClientRect();
 
     return {
-      x: rect.left - wrapRect.left,
-      y: rect.top - wrapRect.top,
-      w: rect.width,
-      h: rect.height,
-      sx: rect.width / imageSize.width,
-      sy: rect.height / imageSize.height,
+      ox: imageRect.left - wrapRect.left,
+      oy: imageRect.top - wrapRect.top,
+      sx: imageRect.width / size.width,
+      sy: imageRect.height / size.height,
     };
-  }, [imageSize, corners]);
+  }, [size, corners]);
 
-  function toScreen(point) {
+  function screenPoint(point) {
     return {
-      x: display.x + point.x * display.sx,
-      y: display.y + point.y * display.sy,
+      x: display.ox + point.x * display.sx,
+      y: display.oy + point.y * display.sy,
     };
   }
 
-  function updateFromPointer(event) {
-    if (!dragKey || !imageSize || !wrapRef.current) return;
+  function updatePointer(event) {
+    if (!dragging || !wrapRef.current || !size) return;
 
     const rect = wrapRef.current.getBoundingClientRect();
     const client = event.touches ? event.touches[0] : event;
 
-    const x = (client.clientX - rect.left - display.x) / display.sx;
-    const y = (client.clientY - rect.top - display.y) / display.sy;
+    const x = (client.clientX - rect.left - display.ox) / display.sx;
+    const y = (client.clientY - rect.top - display.oy) / display.sy;
 
     setCorners((current) => ({
       ...current,
-      [dragKey]: {
-        x: Math.max(0, Math.min(imageSize.width, x)),
-        y: Math.max(0, Math.min(imageSize.height, y)),
+      [dragging]: {
+        x: Math.max(0, Math.min(size.width, x)),
+        y: Math.max(0, Math.min(size.height, y)),
       },
     }));
   }
 
   useEffect(() => {
     function stop() {
-      setDragKey(null);
+      setDragging(null);
     }
 
-    window.addEventListener('pointermove', updateFromPointer);
+    window.addEventListener('pointermove', updatePointer);
     window.addEventListener('pointerup', stop);
-    window.addEventListener('touchmove', updateFromPointer, { passive: false });
+    window.addEventListener('touchmove', updatePointer, { passive: false });
     window.addEventListener('touchend', stop);
 
     return () => {
-      window.removeEventListener('pointermove', updateFromPointer);
+      window.removeEventListener('pointermove', updatePointer);
       window.removeEventListener('pointerup', stop);
-      window.removeEventListener('touchmove', updateFromPointer);
+      window.removeEventListener('touchmove', updatePointer);
       window.removeEventListener('touchend', stop);
     };
   });
 
-  async function applyScan() {
+  async function apply() {
     if (!corners) return;
 
     setProcessing(true);
 
     try {
-      const dataUrl = await perspectiveCropToDataUrl(shot, corners, {
-        mode,
-        normalizeA4: true,
-        quality: 0.94,
-      });
-
+      const dataUrl = await perspectiveCropToDataUrl(shot, corners, { mode, quality: 0.95 });
       onSave({
         id: crypto.randomUUID(),
         dataUrl,
-        createdAt: Date.now(),
         mode,
+        createdAt: Date.now(),
       });
     } finally {
       setProcessing(false);
     }
   }
 
-  if (!corners || !imageSize) {
+  if (!size || !corners) {
     return (
-      <div className="modal">
-        <div className="modalCard loading">
-          <Loader2 className="spin" />
-          <p>Menyiapkan editor...</p>
-        </div>
+      <div className="editorScreen">
+        <Loader2 className="spin" />
       </div>
     );
   }
 
-  const points = handles.map((key) => toScreen(corners[key]));
-  const poly = points.map((p) => `${p.x},${p.y}`).join(' ');
+  const points = keys.map((key) => screenPoint(corners[key]));
+  const polygon = points.map((p) => `${p.x},${p.y}`).join(' ');
 
   return (
-    <div className="modal">
-      <div className="editorPanel">
-        <div className="editorTop">
-          <div>
-            <span><Wand2 size={15} /> Corner Adjust</span>
-            <h2>Tarik 4 titik ke sudut dokumen</h2>
-          </div>
-          <button className="iconBtn" onClick={() => setCorners(defaultCorners(imageSize.width, imageSize.height))}>
-            <RotateCcw size={18} />
-          </button>
-        </div>
+    <div className="editorScreen">
+      <div className="editorTop">
+        <button onClick={onCancel}>Back</button>
+        <strong>Adjust corners</strong>
+        <button onClick={() => setCorners(defaultCorners(size.width, size.height))}>
+          <RotateCcw size={18} />
+        </button>
+      </div>
 
-        <div className="editCanvas" ref={wrapRef}>
-          <img ref={imgRef} src={shot} alt="Dokumen mentah" />
-          <svg className="cornerOverlay">
-            <polygon points={poly} />
-            {handles.map((key) => {
-              const p = toScreen(corners[key]);
+      <div className="editorCanvas" ref={wrapRef}>
+        <img ref={imgRef} src={shot} alt="Dokumen mentah" />
+        <svg>
+          <polygon points={polygon} />
+          {keys.map((key) => {
+            const p = screenPoint(corners[key]);
 
-              return (
-                <circle
-                  key={key}
-                  cx={p.x}
-                  cy={p.y}
-                  r="17"
-                  onPointerDown={(event) => {
-                    event.preventDefault();
-                    setDragKey(key);
-                  }}
-                  onTouchStart={(event) => {
-                    event.preventDefault();
-                    setDragKey(key);
-                  }}
-                />
-              );
-            })}
-          </svg>
-        </div>
+            return (
+              <circle
+                key={key}
+                cx={p.x}
+                cy={p.y}
+                r="20"
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  setDragging(key);
+                }}
+                onTouchStart={(event) => {
+                  event.preventDefault();
+                  setDragging(key);
+                }}
+              />
+            );
+          })}
+        </svg>
+      </div>
 
-        <div className="modeRow">
+      <div className="editorBottom">
+        <div className="filterTabs">
           {[
-            ['magic', 'Magic Scan'],
-            ['clean', 'Clean Color'],
-            ['bw', 'B/W Text'],
+            ['magic', 'Magic'],
+            ['clean', 'Clean'],
+            ['bw', 'B/W'],
             ['original', 'Original'],
           ].map(([value, label]) => (
-            <button key={value} className={mode === value ? 'active' : ''} onClick={() => setMode(value)}>
+            <button
+              key={value}
+              className={mode === value ? 'active' : ''}
+              onClick={() => setMode(value)}
+            >
               {label}
             </button>
           ))}
         </div>
 
-        <div className="modalActions">
-          <button className="secondary" onClick={onCancel} disabled={processing}>Batal</button>
-          <button className="primary" onClick={applyScan} disabled={processing}>
-            {processing ? <Loader2 className="spin" size={18} /> : <Check size={18} />}
-            Terapkan Scan
-          </button>
-        </div>
+        <button className="applyBtn" onClick={apply} disabled={processing}>
+          {processing ? <Loader2 className="spin" size={20} /> : <Check size={20} />}
+          {processing ? 'Processing...' : 'Save scan'}
+        </button>
       </div>
     </div>
   );

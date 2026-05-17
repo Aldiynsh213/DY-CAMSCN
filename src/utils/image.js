@@ -2,7 +2,7 @@ export function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error('Gagal membaca file gambar.'));
+    reader.onerror = () => reject(new Error('Gagal membaca gambar.'));
     reader.readAsDataURL(file);
   });
 }
@@ -24,7 +24,7 @@ export function captureVideoFrame(video) {
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  return canvas.toDataURL('image/jpeg', 0.96);
+  return canvas.toDataURL('image/jpeg', 0.97);
 }
 
 export async function getImageSize(dataUrl) {
@@ -36,8 +36,8 @@ export async function getImageSize(dataUrl) {
 }
 
 export function defaultCorners(width, height) {
-  const padX = width * 0.08;
-  const padY = height * 0.08;
+  const padX = width * 0.055;
+  const padY = height * 0.045;
 
   return {
     tl: { x: padX, y: padY },
@@ -53,27 +53,22 @@ function solveLinearSystem(matrix, vector) {
 
   for (let i = 0; i < n; i += 1) {
     let maxRow = i;
+
     for (let r = i + 1; r < n; r += 1) {
-      if (Math.abs(a[r][i]) > Math.abs(a[maxRow][i])) {
-        maxRow = r;
-      }
+      if (Math.abs(a[r][i]) > Math.abs(a[maxRow][i])) maxRow = r;
     }
 
     [a[i], a[maxRow]] = [a[maxRow], a[i]];
 
-    const pivot = a[i][i] || 1e-12;
+    const pivot = Math.abs(a[i][i]) < 1e-12 ? 1e-12 : a[i][i];
 
-    for (let c = i; c <= n; c += 1) {
-      a[i][c] /= pivot;
-    }
+    for (let c = i; c <= n; c += 1) a[i][c] /= pivot;
 
     for (let r = 0; r < n; r += 1) {
       if (r === i) continue;
       const factor = a[r][i];
 
-      for (let c = i; c <= n; c += 1) {
-        a[r][c] -= factor * a[i][c];
-      }
+      for (let c = i; c <= n; c += 1) a[r][c] -= factor * a[i][c];
     }
   }
 
@@ -126,47 +121,108 @@ function sampleBilinear(data, width, height, x, y) {
   return out;
 }
 
-function applyEnhancement(imageData, mode) {
-  const data = imageData.data;
+function blurGray(gray, width, height) {
+  const out = new Float32Array(gray.length);
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      let sum = 0;
+      let count = 0;
+
+      for (let yy = -1; yy <= 1; yy += 1) {
+        for (let xx = -1; xx <= 1; xx += 1) {
+          const nx = x + xx;
+          const ny = y + yy;
+
+          if (nx >= 0 && ny >= 0 && nx < width && ny < height) {
+            sum += gray[ny * width + nx];
+            count += 1;
+          }
+        }
+      }
+
+      out[y * width + x] = sum / count;
+    }
+  }
+
+  return out;
+}
+
+function autoWhiteBalance(data) {
+  let min = 255;
+  let max = 0;
 
   for (let i = 0; i < data.length; i += 4) {
-    let r = data[i];
-    let g = data[i + 1];
-    let b = data[i + 2];
+    const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    if (gray < min) min = gray;
+    if (gray > max) max = gray;
+  }
 
-    if (mode === 'bw' || mode === 'magic') {
-      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-      const contrast = mode === 'magic' ? 1.72 : 1.48;
-      const bright = mode === 'magic' ? 18 : 8;
-      let value = (gray - 128) * contrast + 128 + bright;
+  const range = Math.max(1, max - min);
+
+  for (let i = 0; i < data.length; i += 4) {
+    for (let c = 0; c < 3; c += 1) {
+      data[i + c] = Math.max(0, Math.min(255, ((data[i + c] - min) / range) * 255));
+    }
+  }
+}
+
+function applyScannerEnhancement(imageData, mode) {
+  const data = imageData.data;
+  autoWhiteBalance(data);
+
+  if (mode === 'magic' || mode === 'bw') {
+    const gray = new Float32Array(data.length / 4);
+
+    for (let i = 0, p = 0; i < data.length; i += 4, p += 1) {
+      gray[p] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    }
+
+    const local = blurGray(gray, imageData.width, imageData.height);
+
+    for (let i = 0, p = 0; i < data.length; i += 4, p += 1) {
+      let value = gray[p];
 
       if (mode === 'magic') {
-        value = value > 178 ? 255 : value < 92 ? 0 : value;
+        const threshold = local[p] * 0.88;
+        value = value > threshold ? 255 : Math.max(0, value * 0.32);
+        value = value > 205 ? 255 : value;
+      } else {
+        value = (value - 128) * 1.48 + 145;
       }
 
       value = Math.max(0, Math.min(255, value));
       data[i] = value;
       data[i + 1] = value;
       data[i + 2] = value;
-      continue;
+      data[i + 3] = 255;
     }
 
-    if (mode === 'clean') {
-      const contrast = 1.22;
-      const bright = 14;
+    return imageData;
+  }
+
+  if (mode === 'clean') {
+    for (let i = 0; i < data.length; i += 4) {
+      let r = data[i];
+      let g = data[i + 1];
+      let b = data[i + 2];
+
+      const contrast = 1.34;
+      const bright = 18;
 
       r = (r - 128) * contrast + 128 + bright;
       g = (g - 128) * contrast + 128 + bright;
       b = (b - 128) * contrast + 128 + bright;
 
       const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-      r = gray + (r - gray) * 0.82;
-      g = gray + (g - gray) * 0.82;
-      b = gray + (b - gray) * 0.82;
+      r = gray + (r - gray) * 0.72;
+      g = gray + (g - gray) * 0.72;
+      b = gray + (b - gray) * 0.72;
 
       data[i] = Math.max(0, Math.min(255, r));
       data[i + 1] = Math.max(0, Math.min(255, g));
       data[i + 2] = Math.max(0, Math.min(255, b));
+      data[i + 3] = 255;
     }
   }
 
@@ -174,13 +230,7 @@ function applyEnhancement(imageData, mode) {
 }
 
 export async function perspectiveCropToDataUrl(dataUrl, corners, options = {}) {
-  const {
-    mode = 'magic',
-    normalizeA4 = true,
-    quality = 0.94,
-    maxOutput = 1700,
-  } = options;
-
+  const { mode = 'magic', quality = 0.95 } = options;
   const image = await loadImage(dataUrl);
 
   const sourceCanvas = document.createElement('canvas');
@@ -191,29 +241,13 @@ export async function perspectiveCropToDataUrl(dataUrl, corners, options = {}) {
   sourceCtx.drawImage(image, 0, 0);
 
   const sourceData = sourceCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
-
   const src = [corners.tl, corners.tr, corners.br, corners.bl];
 
-  const topW = Math.hypot(corners.tr.x - corners.tl.x, corners.tr.y - corners.tl.y);
-  const bottomW = Math.hypot(corners.br.x - corners.bl.x, corners.br.y - corners.bl.y);
-  const leftH = Math.hypot(corners.bl.x - corners.tl.x, corners.bl.y - corners.tl.y);
-  const rightH = Math.hypot(corners.br.x - corners.tr.x, corners.br.y - corners.tr.y);
+  const portrait = Math.hypot(corners.bl.x - corners.tl.x, corners.bl.y - corners.tl.y) >=
+                   Math.hypot(corners.tr.x - corners.tl.x, corners.tr.y - corners.tl.y);
 
-  let outW = Math.max(topW, bottomW);
-  let outH = Math.max(leftH, rightH);
-
-  if (normalizeA4) {
-    const portrait = outH >= outW;
-    outW = portrait ? 1200 : 1697;
-    outH = portrait ? 1697 : 1200;
-  } else {
-    const scale = Math.min(1, maxOutput / Math.max(outW, outH));
-    outW = Math.round(outW * scale);
-    outH = Math.round(outH * scale);
-  }
-
-  outW = Math.max(300, Math.round(outW));
-  outH = Math.max(300, Math.round(outH));
+  const outW = portrait ? 1240 : 1754;
+  const outH = portrait ? 1754 : 1240;
 
   const dst = [
     { x: 0, y: 0 },
@@ -236,7 +270,6 @@ export async function perspectiveCropToDataUrl(dataUrl, corners, options = {}) {
       const denom = h[6] * x + h[7] * y + h[8];
       const sx = (h[0] * x + h[1] * y + h[2]) / denom;
       const sy = (h[3] * x + h[4] * y + h[5]) / denom;
-
       const idx = (y * outW + x) * 4;
 
       if (sx >= 0 && sy >= 0 && sx < sourceCanvas.width && sy < sourceCanvas.height) {
@@ -254,7 +287,6 @@ export async function perspectiveCropToDataUrl(dataUrl, corners, options = {}) {
     }
   }
 
-  outCtx.putImageData(applyEnhancement(output, mode), 0, 0);
-
+  outCtx.putImageData(applyScannerEnhancement(output, mode), 0, 0);
   return outCanvas.toDataURL('image/jpeg', quality);
 }

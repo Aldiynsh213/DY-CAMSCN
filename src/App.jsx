@@ -1,8 +1,8 @@
-import { Camera, Download, FileDown, ImagePlus, Loader2, ScanLine, Trash2 } from 'lucide-react';
+import { Camera, Download, FileText, ImagePlus, Loader2, Plus, ScanLine, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import CornerEditor from './components/CornerEditor';
 import { captureVideoFrame, fileToDataUrl } from './utils/image';
-import { exportToPdf } from './utils/pdf';
+import { createPdfBlob, downloadBlob } from './utils/pdf';
 
 export default function App() {
   const videoRef = useRef(null);
@@ -10,19 +10,18 @@ export default function App() {
   const streamRef = useRef(null);
 
   const [cameraReady, setCameraReady] = useState(false);
-  const [message, setMessage] = useState('Siap. Buka kamera atau import foto dokumen.');
+  const [view, setView] = useState('camera');
   const [shot, setShot] = useState(null);
   const [pages, setPages] = useState([]);
-  const [active, setActive] = useState('scan');
+  const [message, setMessage] = useState('Tap Start Camera.');
   const [exporting, setExporting] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState('');
 
-  useEffect(() => {
-    return () => stopCamera();
-  }, []);
+  useEffect(() => () => stopCamera(), []);
 
   async function startCamera() {
     try {
-      setMessage('Membuka kamera...');
+      setMessage('Opening camera...');
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -38,9 +37,9 @@ export default function App() {
       await videoRef.current.play();
 
       setCameraReady(true);
-      setMessage('Kamera aktif. Foto dokumen, lalu atur 4 titik sudut.');
+      setMessage('Ready. Tap the shutter button.');
     } catch (error) {
-      setMessage('Kamera gagal dibuka. Pastikan izin kamera aktif dan buka lewat HTTPS atau localhost.');
+      setMessage('Camera failed. Allow camera permission and use HTTPS.');
     }
   }
 
@@ -53,48 +52,51 @@ export default function App() {
     setCameraReady(false);
   }
 
-  function capture() {
-    if (!cameraReady || !videoRef.current) return;
-    setShot(captureVideoFrame(videoRef.current));
-  }
-
-  async function importImages(event) {
-    const files = Array.from(event.target.files || []);
-
-    if (!files.length) return;
-
-    const firstImage = files.find((file) => file.type.startsWith('image/'));
-
-    if (!firstImage) {
-      setMessage('File yang dipilih bukan gambar.');
+  function mainCameraAction() {
+    if (!cameraReady) {
+      startCamera();
       return;
     }
 
-    const dataUrl = await fileToDataUrl(firstImage);
-    setShot(dataUrl);
+    if (!videoRef.current) return;
+    setShot(captureVideoFrame(videoRef.current));
+  }
+
+  async function importPhoto(event) {
+    const file = Array.from(event.target.files || []).find((item) => item.type.startsWith('image/'));
+    if (!file) return;
+
+    setShot(await fileToDataUrl(file));
     event.target.value = '';
   }
 
   function savePage(page) {
     setPages((current) => [...current, page]);
     setShot(null);
-    setActive('pages');
-    setMessage('Scan berhasil. Tambah halaman lain atau export PDF.');
-  }
-
-  function deletePage(id) {
-    setPages((current) => current.filter((page) => page.id !== id));
+    setView('result');
+    setMessage('Scan saved. Add page or download PDF.');
   }
 
   async function exportPdf() {
+    if (!pages.length) {
+      setMessage('No scan pages yet.');
+      return;
+    }
+
     setExporting(true);
-    setMessage('Membuat PDF...');
+    setMessage('Creating PDF...');
 
     try {
-      await exportToPdf(pages, 'dy-camscn-scan.pdf');
-      setMessage('PDF berhasil dibuat. Cek folder Download.');
+      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+
+      const blob = await createPdfBlob(pages);
+      const url = URL.createObjectURL(blob);
+      setPdfUrl(url);
+
+      downloadBlob(blob, 'dy-camscn-scan.pdf');
+      setMessage('PDF downloaded. If it does not start, tap Open PDF.');
     } catch (error) {
-      setMessage(error.message || 'Gagal export PDF.');
+      setMessage(error.message || 'Failed to create PDF.');
     } finally {
       setExporting(false);
     }
@@ -102,103 +104,6 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="topbar">
-        <div className="brand">
-          <div className="mark"><ScanLine size={22} /></div>
-          <div>
-            <h1>dy-camscn Stable</h1>
-            <p>Manual corner · Perspective fix · Scanner effect</p>
-          </div>
-        </div>
-        <div className="pageCount">{pages.length} halaman</div>
-      </header>
-
-      <nav className="tabs">
-        <button className={active === 'scan' ? 'active' : ''} onClick={() => setActive('scan')}>
-          <Camera size={17} /> Scan
-        </button>
-        <button className={active === 'pages' ? 'active' : ''} onClick={() => setActive('pages')}>
-          <FileDown size={17} /> Results
-        </button>
-      </nav>
-
-      {active === 'scan' && (
-        <main className="scanView">
-          <section className="hero">
-            <span>Stabil tanpa OpenCV live</span>
-            <h2>Hasil scan rapi tanpa bikin browser freeze.</h2>
-            <p>
-              Ambil foto dokumen, geser 4 titik sudut, lalu sistem akan crop,
-              luruskan perspektif, bersihkan warna, dan simpan sebagai halaman PDF.
-            </p>
-          </section>
-
-          <section className="cameraBox">
-            <video ref={videoRef} playsInline muted />
-            {!cameraReady && (
-              <div className="placeholder">
-                <Camera size={54} />
-                <h3>Kamera belum aktif</h3>
-                <p>Tekan Mulai Kamera di HP. Kamu juga bisa import foto dokumen dari galeri.</p>
-              </div>
-            )}
-          </section>
-
-          <div className="actions">
-            <button className="secondary" onClick={startCamera}>
-              <Camera size={18} /> Mulai Kamera
-            </button>
-            <button className="secondary" onClick={() => fileRef.current?.click()}>
-              <ImagePlus size={18} /> Import Foto
-            </button>
-            <button className="primary" onClick={capture} disabled={!cameraReady}>
-              <ScanLine size={18} /> Ambil Foto
-            </button>
-            <input ref={fileRef} type="file" accept="image/*" hidden onChange={importImages} />
-          </div>
-
-          <div className="status">{message}</div>
-        </main>
-      )}
-
-      {active === 'pages' && (
-        <main className="resultsView">
-          <section className="resultHeader">
-            <div>
-              <span>{pages.length} halaman</span>
-              <h2>Hasil scan</h2>
-              <p>Setiap halaman sudah di-crop dan diluruskan dari 4 titik sudut yang kamu atur.</p>
-            </div>
-            <button className="primary" onClick={exportPdf} disabled={!pages.length || exporting}>
-              {exporting ? <Loader2 className="spin" size={18} /> : <Download size={18} />}
-              Export PDF
-            </button>
-          </section>
-
-          {!pages.length ? (
-            <section className="empty">
-              <ScanLine size={56} />
-              <h3>Belum ada halaman.</h3>
-              <p>Mulai scan atau import foto dokumen dulu.</p>
-            </section>
-          ) : (
-            <div className="pageGrid">
-              {pages.map((page, index) => (
-                <article className="pageCard" key={page.id}>
-                  <img src={page.dataUrl} alt={`Halaman ${index + 1}`} />
-                  <div className="pageMeta">
-                    <strong>Page {index + 1}</strong>
-                    <button onClick={() => deletePage(page.id)}>
-                      <Trash2 size={15} /> Hapus
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </main>
-      )}
-
       {shot && (
         <CornerEditor
           shot={shot}
@@ -207,10 +112,94 @@ export default function App() {
         />
       )}
 
-      <footer>
-        <span>dy-camscn Stable</span>
-        <span>by Aldi</span>
-      </footer>
+      {view === 'camera' && (
+        <section className="cameraView">
+          <div className="cameraTop">
+            <div>
+              <strong>dy-camscn</strong>
+              <span>{pages.length} page{pages.length === 1 ? '' : 's'}</span>
+            </div>
+            <button onClick={() => setView('result')} className="miniBtn">
+              <FileText size={18} />
+              Results
+            </button>
+          </div>
+
+          <div className="cameraStage">
+            <video ref={videoRef} playsInline muted />
+            {!cameraReady && (
+              <div className="cameraIntro">
+                <ScanLine size={58} />
+                <h1>Document Scanner</h1>
+                <p>Start camera, take photo, adjust corners, then export a clean PDF.</p>
+              </div>
+            )}
+            {cameraReady && <div className="guideFrame" />}
+          </div>
+
+          <div className="cameraBottom">
+            <p>{message}</p>
+            <button className={cameraReady ? 'shutter' : 'startBtn'} onClick={mainCameraAction}>
+              {cameraReady ? <Camera size={28} /> : 'Start Camera'}
+            </button>
+          </div>
+        </section>
+      )}
+
+      {view === 'result' && (
+        <section className="resultView">
+          <header className="resultTop">
+            <button onClick={() => setView('camera')} className="miniBtn">
+              <Plus size={18} />
+              Add
+            </button>
+            <div>
+              <strong>Scan Results</strong>
+              <span>{pages.length} page{pages.length === 1 ? '' : 's'}</span>
+            </div>
+            <button onClick={() => fileRef.current?.click()} className="miniBtn">
+              <ImagePlus size={18} />
+              Import
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" hidden onChange={importPhoto} />
+          </header>
+
+          {!pages.length ? (
+            <div className="empty">
+              <ScanLine size={58} />
+              <h2>No scans yet</h2>
+              <p>Tap Add to capture a document.</p>
+            </div>
+          ) : (
+            <div className="pages">
+              {pages.map((page, index) => (
+                <article key={page.id} className="pageCard">
+                  <img src={page.dataUrl} alt={`Page ${index + 1}`} />
+                  <div>
+                    <strong>Page {index + 1}</strong>
+                    <button onClick={() => setPages((current) => current.filter((item) => item.id !== page.id))}>
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+
+          <div className="downloadPanel">
+            <p>{message}</p>
+            <button className="downloadBtn" onClick={exportPdf} disabled={!pages.length || exporting}>
+              {exporting ? <Loader2 className="spin" size={20} /> : <Download size={20} />}
+              {exporting ? 'Creating PDF...' : 'Download PDF'}
+            </button>
+            {pdfUrl && (
+              <a className="openPdf" href={pdfUrl} target="_blank" rel="noreferrer">
+                Open PDF preview
+              </a>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
