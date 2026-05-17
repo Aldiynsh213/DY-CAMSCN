@@ -1,0 +1,17 @@
+{
+  "name": "dy-camscn",
+  "short_name": "dy-camscn",
+  "description": "Mobile document scanner with camera capture and PDF export.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

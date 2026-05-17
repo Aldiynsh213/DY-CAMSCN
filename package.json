@@ -1,0 +1,21 @@
+{
+  "name": "dy-camscn",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mobile-first camera document scanner web app with PDF export.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "vite": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "jspdf": "latest",
+    "lucide-react": "latest"
+  },
+  "devDependencies": {}
+}
