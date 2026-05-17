@@ -1,42 +1,41 @@
-# dy-camscn Pro
+# dy-camscn Stable
 
-Auto document scanner web app.
+Versi stabil untuk scanner dokumen mobile.
 
-## What is new in Pro
+## Kenapa versi ini dibuat?
 
-- Auto document edge detection
-- Live green document lock overlay
-- Perspective correction for tilted documents
-- Auto crop only document area
-- Magic Scan / Clean Color / Black & White modes
+Versi OpenCV live detection terlalu berat untuk sebagian laptop/HP dan bisa membuat browser freeze. Versi ini tidak memakai OpenCV live, jadi jauh lebih stabil.
+
+## Fitur
+
+- Buka kamera HP
+- Ambil foto dokumen
+- Import foto dari galeri
+- Manual 4 titik sudut dokumen
+- Perspective correction
+- Auto crop sesuai sudut dokumen
+- Magic Scan, Clean Color, B/W Text, Original
 - Multi-page PDF export
-- Frontend-only, deploys well on Vercel
+- Tidak perlu backend
+- Cocok deploy ke Vercel
 
-## Run locally
+## Cara pakai
+
+1. Mulai Kamera atau Import Foto
+2. Ambil foto dokumen
+3. Geser 4 titik hijau ke sudut dokumen
+4. Pilih mode scan
+5. Klik Terapkan Scan
+6. Export PDF
+
+## Run lokal
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open:
-
-```txt
-http://localhost:5173
-```
-
-## Important
-
-OpenCV.js is loaded from the official OpenCV CDN. The first load can take a few seconds.
-
-Camera works only on:
-
-- localhost
-- HTTPS deployment, such as Vercel
-
-## Deploy
-
-Recommended: Vercel
+## Deploy Vercel
 
 - Framework: Vite
 - Build command: npm run build

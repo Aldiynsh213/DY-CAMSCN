@@ -2,13 +2,13 @@
   --bg: #07111f;
   --card: rgba(255, 255, 255, .08);
   --card2: rgba(255, 255, 255, .12);
-  --line: rgba(255, 255, 255, .13);
+  --line: rgba(255, 255, 255, .14);
   --text: #f8fafc;
-  --muted: rgba(248, 250, 252, .64);
+  --muted: rgba(248, 250, 252, .65);
   --green: #22c55e;
   --cyan: #06b6d4;
-  --danger: #ef4444;
   --dark: #020617;
+  --danger: #ef4444;
 }
 
 * {
@@ -22,19 +22,23 @@ body {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--text);
   background:
-    radial-gradient(circle at 15% 0%, rgba(34, 197, 94, .18), transparent 32%),
-    radial-gradient(circle at 85% 10%, rgba(6, 182, 212, .14), transparent 26%),
+    radial-gradient(circle at 15% 0%, rgba(34,197,94,.18), transparent 32%),
+    radial-gradient(circle at 85% 12%, rgba(6,182,212,.18), transparent 30%),
     linear-gradient(135deg, #020617, #07111f 55%, #052e2b);
 }
 
-button {
+button,
+input {
   font: inherit;
+}
+
+button {
   -webkit-tap-highlight-color: transparent;
 }
 
 .app {
   width: 100%;
-  max-width: 980px;
+  max-width: 960px;
   margin: 0 auto;
   padding: 16px;
   padding-bottom: 80px;
@@ -45,21 +49,21 @@ button {
   top: 0;
   z-index: 20;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
   padding: 14px 0;
-  background: linear-gradient(to bottom, rgba(7,17,31,.98), rgba(7,17,31,.72), transparent);
+  background: linear-gradient(to bottom, rgba(7,17,31,.98), rgba(7,17,31,.75), transparent);
   backdrop-filter: blur(16px);
 }
 
-.logo {
+.brand {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.logoMark {
+.mark {
   width: 48px;
   height: 48px;
   border-radius: 18px;
@@ -69,55 +73,46 @@ button {
   background: linear-gradient(135deg, var(--green), var(--cyan));
 }
 
-.logo h1 {
+.brand h1 {
   margin: 0;
   font-size: 21px;
   letter-spacing: -.04em;
 }
 
-.logo p {
+.brand p {
   margin: 4px 0 0;
   color: var(--muted);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 850;
 }
 
-.lockBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
+.pageCount {
   border: 1px solid var(--line);
   background: var(--card);
-  color: var(--muted);
-  padding: 9px 11px;
   border-radius: 999px;
+  padding: 10px 12px;
+  color: var(--muted);
   font-size: 12px;
   font-weight: 950;
-}
-
-.lockBadge.on {
-  background: rgba(34, 197, 94, .16);
-  color: #86efac;
-  border-color: rgba(34, 197, 94, .35);
 }
 
 .tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, .06);
   padding: 6px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.06);
   border-radius: 22px;
   margin-bottom: 14px;
 }
 
 .tabs button {
+  min-height: 46px;
   border: 0;
+  border-radius: 16px;
   background: transparent;
   color: var(--muted);
-  border-radius: 16px;
-  min-height: 46px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -130,21 +125,20 @@ button {
   color: var(--dark);
 }
 
-.headline,
+.hero,
 .resultHeader,
 .empty {
   border: 1px solid var(--line);
   background: var(--card);
   border-radius: 28px;
   padding: 20px;
-  box-shadow: 0 24px 70px rgba(0,0,0,.28);
+  box-shadow: 0 24px 80px rgba(0,0,0,.28);
 }
 
-.headline span,
-.resultHeader span {
+.hero span,
+.resultHeader span,
+.editorTop span {
   display: inline-flex;
-  align-items: center;
-  gap: 7px;
   color: #86efac;
   font-size: 11px;
   text-transform: uppercase;
@@ -152,15 +146,16 @@ button {
   font-weight: 950;
 }
 
-.headline h2,
-.resultHeader h2 {
+.hero h2,
+.resultHeader h2,
+.editorTop h2 {
   margin: 12px 0 9px;
   font-size: clamp(30px, 7vw, 58px);
   line-height: .95;
   letter-spacing: -.06em;
 }
 
-.headline p,
+.hero p,
 .resultHeader p,
 .empty p {
   margin: 0;
@@ -168,51 +163,17 @@ button {
   color: var(--muted);
 }
 
-.modeGrid {
-  display: grid;
-  gap: 8px;
-  margin: 14px 0;
-}
-
-.mode {
-  text-align: left;
-  border: 1px solid var(--line);
-  background: var(--card);
-  color: white;
-  border-radius: 20px;
-  padding: 14px;
-  cursor: pointer;
-}
-
-.mode strong,
-.mode small {
-  display: block;
-}
-
-.mode small {
-  color: var(--muted);
-  margin-top: 4px;
-}
-
-.mode.active {
-  background: white;
-  color: var(--dark);
-}
-
-.mode.active small {
-  color: #475569;
-}
-
 .cameraBox {
   position: relative;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  background: #020617;
-  border-radius: 28px;
   min-height: 520px;
   display: grid;
   place-items: center;
-  box-shadow: 0 24px 70px rgba(0,0,0,.35);
+  border: 1px solid var(--line);
+  background: #020617;
+  border-radius: 28px;
+  overflow: hidden;
+  margin-top: 14px;
+  box-shadow: 0 24px 70px rgba(0,0,0,.34);
 }
 
 .cameraBox video {
@@ -222,26 +183,19 @@ button {
   object-fit: cover;
 }
 
-.overlay,
-.placeholder,
-.processing {
+.placeholder {
   position: absolute;
   inset: 0;
-}
-
-.placeholder,
-.processing {
   display: grid;
   place-items: center;
   align-content: center;
   text-align: center;
   padding: 24px;
-  background: rgba(2,6,23,.72);
+  background: rgba(2,6,23,.7);
 }
 
-.placeholder h3,
-.processing p {
-  margin: 13px 0 6px;
+.placeholder h3 {
+  margin: 14px 0 6px;
 }
 
 .placeholder p {
@@ -249,11 +203,6 @@ button {
   max-width: 420px;
   color: var(--muted);
   line-height: 1.6;
-}
-
-.processing {
-  background: rgba(2,6,23,.78);
-  z-index: 6;
 }
 
 .actions {
@@ -264,8 +213,8 @@ button {
 
 .primary,
 .secondary {
-  border: 0;
   min-height: 56px;
+  border: 0;
   border-radius: 18px;
   padding: 14px 18px;
   display: inline-flex;
@@ -277,33 +226,28 @@ button {
 }
 
 .primary {
-  color: #052e16;
   background: linear-gradient(135deg, var(--green), var(--cyan));
+  color: #052e16;
 }
 
 .secondary {
-  color: var(--dark);
   background: white;
+  color: var(--dark);
 }
 
 button:disabled {
-  opacity: .48;
+  opacity: .45;
   cursor: not-allowed;
 }
 
 .status {
   margin-top: 12px;
   padding: 14px 16px;
-  border-radius: 18px;
+  border: 1px solid var(--line);
   background: var(--card);
+  border-radius: 18px;
   color: var(--muted);
   line-height: 1.55;
-  border: 1px solid var(--line);
-}
-
-.status.good {
-  background: rgba(34,197,94,.14);
-  color: #bbf7d0;
 }
 
 .resultHeader {
@@ -323,56 +267,42 @@ button:disabled {
   background: var(--card);
   border-radius: 26px;
   padding: 12px;
-  overflow: hidden;
 }
 
 .pageCard img {
   width: 100%;
-  border-radius: 19px;
   display: block;
+  border-radius: 19px;
   background: white;
 }
 
 .pageMeta {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
-  color: var(--muted);
-  margin: 12px 2px;
-  font-size: 13px;
+  margin-top: 12px;
 }
 
-.pageMeta strong {
-  color: white;
-}
-
-.pageActions {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
-  gap: 8px;
-}
-
-.pageActions button {
-  border: 1px solid var(--line);
-  background: rgba(255,255,255,.1);
-  color: white;
-  border-radius: 14px;
-  min-height: 42px;
-  font-weight: 850;
-}
-
-.pageActions .danger {
+.pageMeta button {
+  border: 1px solid rgba(239,68,68,.28);
+  background: rgba(239,68,68,.14);
   color: #fecaca;
-  background: rgba(239,68,68,.15);
+  border-radius: 12px;
+  padding: 9px 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 850;
 }
 
 .empty {
   min-height: 52vh;
+  margin-top: 14px;
   display: grid;
   place-items: center;
   align-content: center;
   text-align: center;
-  margin-top: 14px;
 }
 
 .empty h3 {
@@ -380,14 +310,131 @@ button:disabled {
   font-size: 24px;
 }
 
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(2,6,23,.84);
+  backdrop-filter: blur(16px);
+  display: grid;
+  place-items: end center;
+  padding: 12px;
+}
+
+.editorPanel {
+  width: min(100%, 980px);
+  max-height: 94vh;
+  overflow: auto;
+  border: 1px solid var(--line);
+  background: #07111f;
+  border-radius: 30px;
+  padding: 14px;
+  box-shadow: 0 30px 100px rgba(0,0,0,.55);
+}
+
+.editorTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  padding: 8px 4px 14px;
+}
+
+.editorTop h2 {
+  font-size: clamp(24px, 6vw, 44px);
+}
+
+.iconBtn {
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: white;
+  border-radius: 16px;
+}
+
+.editCanvas {
+  position: relative;
+  background: #020617;
+  border-radius: 22px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  touch-action: none;
+  min-height: 360px;
+}
+
+.editCanvas img {
+  max-width: 100%;
+  max-height: 68vh;
+  display: block;
+}
+
+.cornerOverlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.cornerOverlay polygon {
+  fill: rgba(34,197,94,.13);
+  stroke: #22c55e;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 8px rgba(34,197,94,.6));
+}
+
+.cornerOverlay circle {
+  fill: #22c55e;
+  stroke: white;
+  stroke-width: 4;
+  cursor: grab;
+  touch-action: none;
+}
+
+.modeRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.modeRow button {
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--card);
+  color: white;
+  font-weight: 900;
+}
+
+.modeRow button.active {
+  background: white;
+  color: var(--dark);
+}
+
+.modalActions {
+  display: grid;
+  grid-template-columns: .8fr 1.2fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.loading {
+  width: min(90vw, 420px);
+  padding: 28px;
+  text-align: center;
+  border: 1px solid var(--line);
+  background: #07111f;
+  border-radius: 28px;
+}
+
 .spin {
   animation: spin .8s linear infinite;
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 footer {
@@ -404,27 +451,27 @@ footer {
     padding: 24px;
   }
 
-  .modeGrid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
   .actions {
-    grid-template-columns: 1fr 1fr 1.4fr;
+    grid-template-columns: 1fr 1fr 1.2fr;
   }
 
   .resultHeader {
     flex-direction: row;
-    align-items: end;
     justify-content: space-between;
+    align-items: end;
   }
 
   .pageGrid {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .modeRow {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
   .cameraBox,
   .cameraBox video {
-    min-height: 640px;
+    min-height: 620px;
   }
 }
 

@@ -1,8 +1,8 @@
 {
-  "name": "dy-camscn-pro",
-  "version": "2.0.0",
+  "name": "dy-camscn-stable",
+  "version": "3.0.0",
   "private": true,
-  "description": "Mobile-first document scanner with auto document detection, perspective crop, enhancement, and PDF export.",
+  "description": "Stable mobile document scanner with manual corner crop, perspective correction, scan enhancement, and PDF export.",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

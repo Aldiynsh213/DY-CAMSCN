@@ -1,7 +1,7 @@
 {
-  "name": "dy-camscn Pro",
+  "name": "dy-camscn Stable",
   "short_name": "dy-camscn",
-  "description": "Auto document scanner with perspective correction and PDF export.",
+  "description": "Stable mobile document scanner with manual crop and PDF export.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#07111f",
