@@ -1,31 +1,33 @@
-# dy-camscn Mobile Fixed
+# dy-camscn
 
-Versi perbaikan setelah feedback:
+Pemindai dokumen mobile-first yang berjalan di browser: ambil foto lewat kamera, potong sudut, perbaiki tampilan, lalu ekspor ke PDF.
 
-- Kamera fullscreen, tidak ketutup padding/box.
-- Menu kamera hanya punya tombol utama.
-- Start Camera berubah menjadi tombol shutter/foto.
-- Setelah satu scan, kamera tidak stuck hitam. Camera stream dimatikan lalu bisa dibuka ulang dari Add.
-- Hasil scan tidak dibuat putih berlebihan.
-- Default filter Balanced lebih jelas dan natural.
-- Download PDF pakai `pdf.save()` agar lebih reliable.
-- Preview PDF tetap tersedia setelah export.
+## Fitur
+- Kamera layar penuh, tombol shutter tunggal
+- Crop sudut dokumen (corner editor)
+- Filter perbaikan scan, default Balanced
+- Ekspor PDF dengan `jsPDF` dan pratinjau setelah ekspor
+- PWA: manifest dan ikon tersedia di `public/`
 
-## Cara update
+## Teknologi
+React 19, Vite, jsPDF, lucide-react.
 
-Copy isi folder ini ke folder project lama, jangan hapus `.git`.
+## Struktur
+```
+src/App.jsx                    alur utama
+src/components/CornerEditor.jsx editor crop sudut
+src/utils/image.js             pemrosesan gambar
+src/utils/pdf.js               ekspor PDF
+public/                        manifest dan ikon
+```
 
+## Menjalankan
 ```bash
 npm install
-npm run dev
+npm run dev        # dapat diakses dari HP di jaringan yang sama
+npm run build
 ```
+Kamera di browser butuh HTTPS atau `localhost`. Deploy di Vercel memakai `vercel.json` (SPA rewrite).
 
-Lalu:
-
-```bash
-git add .
-git commit -m "fix camera scanner mobile flow"
-git push
-```
-
-Created by Aldi.
+## Lisensi
+MIT
